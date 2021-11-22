@@ -1,0 +1,1 @@
+python onnx_traj_every_frame.py -m data\yolov4_-1_3_608_608_dynamic.onnx -i data\test_video.mp4 -o tmp_result.mp4 -f 220 -c 5
