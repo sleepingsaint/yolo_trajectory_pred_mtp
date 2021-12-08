@@ -7,16 +7,14 @@ import shutil
 
 # file ids
 links = {
-    "1C3Kqqu9gDXNNXr5WDpmhGTr-UaQ2ckqQ": ["obj_detection.weights", "detector/YOLOv3/weight/"],
-    "1VfRVvc-7EowI540S0_6FxJOMVg9XyXef": ["traj_arm.pth", "Trajectory/models/Individual/"],
-    "1t_qok3BNNHN6EK_Uw3WiXrfGtLfQJpCs": ["traj_endeffector.pth", "Trajectory/models/Individual/"],
-    "1SEZGUvLB2gfVwA-yGTBlF5k3YDiOzYWj": ["traj_probe.pth", "Trajectory/models/Individual/"],
-    "1p8vo9rig9Q0i0WLVudQBgzkdjtJXcDiS": ["00013.pth", "Trajectory/models/Individual/eth_train/"],
-    "1MlXnCSjD5yOfxnnJMkruE0rCgLCMZJlB": ["ckpt.t7", "deep_sort/deep/checkpoint/"],
+    "1VfRVvc-7EowI540S0_6FxJOMVg9XyXef": ["traj_arm.pth", "data/"],
+    "1t_qok3BNNHN6EK_Uw3WiXrfGtLfQJpCs": ["traj_endeffector.pth", "data/"],
+    "1SEZGUvLB2gfVwA-yGTBlF5k3YDiOzYWj": ["traj_probe.pth", "data/"],
+    "1p8vo9rig9Q0i0WLVudQBgzkdjtJXcDiS": ["00013.pth", "data/"],
     "13mVaJTsJ7rN-Bz5KtsS20dX1TZFAHLkU": ["test_video.mp4", "data/"],
     "1P2pV7CTRZbBoqv3i3np2WwU9wCVyHIxG": ["yolov3TATA608_final.weights", "data/"],
     "154S6WyZqLeF3G3gPTMibGnLnVLcpmEwm": ["test_image.jpg", "data/"],
-    "1E5xeyAmZeL86JVMGK9maWerV4c3tvoWV": ["yolov3TATA608.cfg", "data/"]
+    "1Kf6NuBeEbeXUxau3uQZVR02ry422wxv2DdZe6G0B2c4": ["yolov3TATA608.cfg", "data/"]
 }
 
 # download the files and save to respective folder

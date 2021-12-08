@@ -11,8 +11,8 @@ from Trajectory import individual_TF
 from Trajectory.transformer.batch import subsequent_mask
 import argparse
 
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cuda")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda")
 
 detections_map = {}
 
