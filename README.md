@@ -89,10 +89,10 @@ example:
 * Running for the first 100 frames
 
 ```python
-python onnx_traj_every_frame.py -m data\yolov4_-1_3_608_608_dynamic.onnx -i data\test_video.mp4 -f 100 -c 5 -o tmp_result.mp4
+python onnx_traj_every_frame.py -m data/yolov_converted.onnx -i data/test_video.mp4 -f 100 -c 5 -o tmp_result.mp4
 ```
 
 * Running for the entire video
 ```shell
->python onnx_traj_every_frame.py -m data\yolov4_-1_3_608_608_dynamic.onnx -i data\test_video.mp4 -c 5 -o tmp_result.mp4
+python onnx_traj_every_frame.py -m data/yolo_converted.onnx -i data/test_video.mp4 -c 5 -o tmp_result.mp4
 ```
