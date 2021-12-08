@@ -32,7 +32,7 @@ traj_endeffector.eval()
 traj_problance = individual_TF.IndividualTF(
     2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0, 0], std=[0, 0]).to(device)
 traj_problance.load_state_dict(torch.load(
-    f'data/traj_probe_holder.pth', map_location=torch.device('cpu')))
+    f'data/traj_problance.pth', map_location=torch.device('cpu')))
 traj_problance.eval()
 
 traj_probe = individual_TF.IndividualTF(
@@ -44,7 +44,7 @@ traj_probe.eval()
 traj_person = individual_TF.IndividualTF(
     2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0, 0], std=[0, 0]).to(device)
 traj_person.load_state_dict(torch.load(
-    f'data/00013.pth', map_location=torch.device('cpu')))
+    f'data/traj_person.pth', map_location=torch.device('cpu')))
 traj_person.eval()
 
 # covert the output from model to bounding boxes
