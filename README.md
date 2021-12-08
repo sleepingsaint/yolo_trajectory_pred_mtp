@@ -96,3 +96,7 @@ python onnx_traj_every_frame.py -m data/yolov_converted.onnx -i data/test_video.
 ```shell
 python onnx_traj_every_frame.py -m data/yolo_converted.onnx -i data/test_video.mp4 -c 5 -o tmp_result.mp4
 ```
+
+### Colab Link
+
+Please refer to this [colab notebook](https://colab.research.google.com/drive/1OvyCCnw0asjzlrOP942BFT-XtbO9FUN9?usp=sharing) to understand the steps better.
