@@ -15,6 +15,8 @@ links = {
     "1MlXnCSjD5yOfxnnJMkruE0rCgLCMZJlB": ["ckpt.t7", "deep_sort/deep/checkpoint/"],
     "13mVaJTsJ7rN-Bz5KtsS20dX1TZFAHLkU": ["test_video.mp4", "data/"],
     "1P2pV7CTRZbBoqv3i3np2WwU9wCVyHIxG": ["yolov3TATA608_final.weights", "data/"],
+    "154S6WyZqLeF3G3gPTMibGnLnVLcpmEwm": ["test_image.jpg", "data/"],
+    "1E5xeyAmZeL86JVMGK9maWerV4c3tvoWV": ["yolov3TATA608.cfg", "data/"]
 }
 
 # download the files and save to respective folder

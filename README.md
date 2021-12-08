@@ -51,6 +51,16 @@ git clone https://github.com/sleepingsaint/yolo_trajectory_pred_mtp.git
 ## Adding the class names
 Change the class names in data/names file if you used custom object for training
 
+## Converting the Darknet model to onnx
+Run the following command to convert the trained darknet model to ONNX format.
+
+```bash
+python darknet2onnx.py -c data/yolov3TATA608.cfg -w data/yolov3TATA608_final.weights -i data/test_image.jpg
+```
+
+* Here test image is for checking if the model is properly converted or not.
+* It will create a converted ONNX model and predictions_onnx.jpg image (predictions from the converted ONNX model) in root directory.
+
 ## Running the pipeline
 
 Run the below command to run inference on a video file
