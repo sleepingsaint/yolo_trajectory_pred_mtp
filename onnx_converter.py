@@ -1,7 +1,12 @@
 import os
+import onnx
 import torch
 import argparse
 from Trajectory import individual_TF
+
+def checkModel(model_path):
+    model = onnx.load(model_path)
+    onnx.checker.check_model(model)
 
 def exportOnnxUtil(model, modelname):
     input_torch = torch.rand(1, 7, 2).to(device)
@@ -21,7 +26,11 @@ def exportOnnxUtil(model, modelname):
                                 'src_mask': {0: 'batch_size'},
                                 'tgt_mask': {0: 'batch_size', 1: 'mask_size', 2: 'mask_size'},
                                 'output': {0: 'batch_size'}})
-
+    try:
+        checkModel(modelname)
+    except:
+        print("Invalid model")
+        
 def exportOnnx(output_dir):
 
     # create directory if doesn't exists
