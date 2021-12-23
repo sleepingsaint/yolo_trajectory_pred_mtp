@@ -3,6 +3,7 @@ import onnx
 import torch
 import argparse
 from Trajectory import individual_TF
+from Trajectory.transformer.functional import subsequent_mask
 
 def checkModel(model_path):
     model = onnx.load(model_path)
@@ -12,12 +13,12 @@ def exportOnnxUtil(model, modelname):
     input_torch = torch.rand(1, 7, 2).to(device)
     tgt = torch.rand(1, 1, 3).to(device)
     src_mask = torch.rand(input_torch.size(0), 1, input_torch.size(1)).to(device)
-    tgt_mask = torch.Tensor([True]).unsqueeze(0).unsqueeze(0).to(device)
+    tgt_mask = subsequent_mask(tgt.shape[1]).repeat(tgt.shape[0], 1, 1).to(device)
     torch.onnx.export(model,
                   (input_torch, tgt, src_mask, tgt_mask),
                   modelname,
                   export_params=True,
-                  opset_version=10,
+                  opset_version=11,
                   do_constant_folding=True,
                   input_names=['input', 'tgt', 'src_mask', 'tgt_mask'],
                   output_names=['output'],
