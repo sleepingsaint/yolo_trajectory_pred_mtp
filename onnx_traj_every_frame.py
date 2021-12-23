@@ -227,8 +227,8 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
         else:
             detections_map[class_names[c]] = [[[x, y]]]
 
-        predictions_count = 0
-        predictions_time = 0
+    predictions_count = 0
+    predictions_time = 0
 
     for label in detections_map:
         if label in detections_map and len(detections_map[label][0]) >= 8:
