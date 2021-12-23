@@ -288,7 +288,7 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
                             "tgt_mask": to_numpy(trg_att),
                         })
 
-                out = torch.from_numpy(out).to(device)
+                out = torch.from_numpy(out[0]).to(device)
                 dec_input = torch.cat([dec_input, out[:, -1:, :]], 1)
 
             end = time.time()

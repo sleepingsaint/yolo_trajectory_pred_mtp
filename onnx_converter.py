@@ -26,11 +26,8 @@ def exportOnnxUtil(model, modelname):
                                 'src_mask': {0: 'batch_size'},
                                 'tgt_mask': {0: 'batch_size', 1: 'mask_size', 2: 'mask_size'},
                                 'output': {0: 'batch_size'}})
-    try:
-        checkModel(modelname)
-    except:
-        print("Invalid model")
-        
+    checkModel(modelname)
+
 def exportOnnx(output_dir):
 
     # create directory if doesn't exists
