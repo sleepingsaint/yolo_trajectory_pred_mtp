@@ -100,3 +100,12 @@ python onnx_traj_every_frame.py -m data/yolo_converted.onnx -i data/test_video.m
 ### Colab Link
 
 Please refer to this [colab notebook](https://colab.research.google.com/drive/1OvyCCnw0asjzlrOP942BFT-XtbO9FUN9?usp=sharing) to understand the steps better.
+
+
+### Check out Previous Pipeline
+
+The previous pipeline doesn't contain any optimizations and onnx format conversions. Run the following command to execute the script
+
+```bash
+python3 previous_pipeline.py -i <path to the video>
+```

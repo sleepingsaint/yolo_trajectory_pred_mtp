@@ -237,7 +237,7 @@ class VideoTracker(object):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--VIDEO_PATH", type=str, default="C:/Users/venny/Downloads/new_video_3.mp4")
+    parser.add_argument("-i", "--input", type=str, help="Path to the input video")
     parser.add_argument("--config_detection", type=str, default="./configs/yolov3.yaml")
     parser.add_argument("--config_deepsort", type=str, default="./configs/deep_sort.yaml")
     # parser.add_argument("--ignore_display", dest="display", action="store_false", default=True)
@@ -258,6 +258,6 @@ if __name__ == "__main__":
     cfg.merge_from_file(args.config_detection)
     cfg.merge_from_file(args.config_deepsort)
 
-    with VideoTracker(cfg, args, video_path=args.VIDEO_PATH) as vdo_trk:
+    with VideoTracker(cfg, args, video_path=args.input) as vdo_trk:
         vdo_trk.run()
 
