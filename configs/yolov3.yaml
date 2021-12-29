@@ -1,10 +1,7 @@
 YOLOV3:
-  CFG: "./detector/YOLOv3/cfg/yolov3-custom.cfg"
-  WEIGHT: "./detector/YOLOv3/weight/obj_detection.weights"
-  CLASS_NAMES: "./detector/YOLOv3/cfg/classes.names"
-  #CFG: "C:/Users/venny/Desktop/Project/yolov3.cfg"
-  #WEIGHT: "C:/Users/venny/Desktop/Project/yolov3.weights"
-  #CLASS_NAMES: "C:/Users/venny/Desktop/Project/coco.names"
+  CFG: "./data/yolov3TATA.cfg"
+  WEIGHT: "./data/yolov3TATA_final.weights"
+  CLASS_NAMES: "./data/names"
 
   SCORE_THRESH: 0.7
   NMS_THRESH: 0.3
