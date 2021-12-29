@@ -227,6 +227,8 @@ class VideoTracker(object):
             total_fps = round(1 / (end - start), 2)
             self.spinner.text = f"[Frame {idx_frame}] [FPS] Detection: {detection_fps} Prediction: {self.previous_prediction_fps} Total: {total_fps}"
             ori_im = cv2.putText(ori_im, f"[FPS] Detection: {detection_fps} Prediction: {self.previous_prediction_fps} Total: {total_fps}", (50, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+            # cv2.imshow("result", ori_im)
+            # cv2.waitKey(1)
 
             if self.args.save_path:
                 self.writer.write(ori_im)
