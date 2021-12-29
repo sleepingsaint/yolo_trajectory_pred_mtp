@@ -13,6 +13,7 @@ from utils.log import get_logger
 from utils.io import write_results
 from Trajectory import individual_TF
 from Trajectory.transformer.batch import subsequent_mask
+from tool.utils import load_class_names
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -27,6 +28,7 @@ class VideoTracker(object):
         self.video_path = video_path
         self.logger = get_logger("root")
         self.spinner = Halo(text="loading frames", spinner='dots')
+        self.class_names = load_class_names("data/names")
         use_cuda = args.use_cuda and torch.cuda.is_available()
         if not use_cuda:
             warnings.warn("Running in cpu mode which maybe very slow!", UserWarning)
@@ -58,7 +60,7 @@ class VideoTracker(object):
         self.Q = { }
         self.previous_prediction_fps = -1
 
-
+    
     def __enter__(self):
         if self.args.cam != -1:
             ret, frame = self.vdo.read()
@@ -123,7 +125,7 @@ class VideoTracker(object):
             height, width = ori_im.shape[:2]
             bbox_xywh , cls_conf, cls_ids = self.detector(im)
             
-            for i in range(3):
+            for i in range(5):
                 mask = cls_ids == i
                 t_cls_conf = cls_conf[mask]
                 t_bbox_xywh = bbox_xywh[mask]
@@ -138,7 +140,7 @@ class VideoTracker(object):
                     y2 = int(cy + (h/2))
                     pt = [t_bbox_xywh[np.argmax(t_cls_conf)][0] / width, t_bbox_xywh[np.argmax(t_cls_conf)][1] / height]
                     ori_im = cv2.rectangle(ori_im, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    ori_im = cv2.putText(ori_im, str(i), (x1, y1 + 10), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 1)
+                    ori_im = cv2.putText(ori_im, self.class_names[i], (x1, y1 + 10), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
                     t_id = i
                     if t_id in self.Q:
                         self.Q[t_id][0].append(pt)
