@@ -1,6 +1,6 @@
 YOLOV3:
-  CFG: "./data/yolov3TATA.cfg"
-  WEIGHT: "./data/yolov3TATA_final.weights"
+  CFG: "./data/yolov3TATA608.cfg"
+  WEIGHT: "./data/yolov3TATA608_final.weights"
   CLASS_NAMES: "./data/names"
 
   SCORE_THRESH: 0.7
