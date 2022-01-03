@@ -345,7 +345,7 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
     return frame, 0
 
 
-def runInference(model, video_path, output_path, num_frames, class_names, verbose):
+def runInference(model, video_path, output_path, num_frames, class_names, verbose, frame_freq):
 
     session = onnxruntime.InferenceSession(
         model, providers=["CUDAExecutionProvider", ])
@@ -371,7 +371,8 @@ def runInference(model, video_path, output_path, num_frames, class_names, verbos
 
     frame_count = 0
     total = {"inference": 0, "traj": 0, "obj": 0, "nms": 0, "bbox": 0}
-    frame_freq = 10
+    frame_freq = 1 if frame_freq is None else frame_freq
+
     traj_count = 0
     past_trajectory_fps = 0
     with Halo(spinner="dots", text="Loading the frames") as sp:
@@ -467,6 +468,7 @@ if __name__ == "__main__":
                         default=False, help="Enable more details")
     parser.add_argument('-c', '--num_classes', type=int,
                         default=5, help="Number of classes model trained on")
+    parser.add_argument('-q', '--frame_freq', default=1, type=int, help="Freq on which to run the trajectory prediction")
     args = parser.parse_args()
     # print(args)
 
@@ -480,4 +482,4 @@ if __name__ == "__main__":
     class_names = load_class_names(namesfile)
 
     runInference(args.model, args.input, args.output,
-                 args.frame_count, class_names, args.verbose)
+                 args.frame_count, class_names, args.verbose, args.frame_freq)

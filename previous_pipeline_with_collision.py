@@ -254,7 +254,7 @@ def parse_args():
     parser.add_argument("--config_deepsort", type=str, default="./configs/deep_sort.yaml")
     # parser.add_argument("--ignore_display", dest="display", action="store_false", default=True)
     parser.add_argument("--display", action="store_false")
-    parser.add_argument("--frame_interval", type=int, default=10)
+    parser.add_argument('-q', '--frame_interval', default=1, type=int, help="Freq on which to run the trajectory prediction")
     parser.add_argument("--display_width", type=int, default=800)
     parser.add_argument("--display_height", type=int, default=600)
     parser.add_argument("--save_path", type=str, default="./output/")
