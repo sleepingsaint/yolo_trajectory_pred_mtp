@@ -79,7 +79,9 @@ python onnx_traj_every_frame.py -m <path to onnx model> -i <path to input video 
   -o OUTPUT, --output OUTPUT Path to the output video
 
   -f FRAME_COUNT, --frame_count FRAME_COUNT Number of frames to run the video
-
+  
+  -q FRAME_FREQ, --frame_freq FRAME_FREQ Frequency of frame to run the trajectory prediction on
+  
   -v, --verbose         Enable more details
   
   -c NUM_CLASSES, --num_classes NUM_CLASSES
