@@ -2,13 +2,15 @@
 
 ## Outline
 
-![Pipeline block diagram](<.gitbook/assets/MTP Pipeline.drawio.png>)
+![Pipeline block diagram](<../.gitbook/assets/MTP Pipeline.drawio.png>)
 
 ### Object Detection Module
 
 This module uses state-of-art Object Detection Neural Network called **YOLO.** We have trained our model using the custom dataset we prepared from multiple sources. We used the transfer learning approach to train the model.
 
 We then optimized the inference time of the detection module using different solutions like ONNX runtime, TensorRT.
+
+For more information about this module check out this [`link`](broken-reference)``
 
 ### Trajectory Prediction Module
 

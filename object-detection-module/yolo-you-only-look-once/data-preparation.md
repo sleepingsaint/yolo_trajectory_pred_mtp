@@ -1,6 +1,10 @@
 # Data Preparation
 
-This page describes about generating ground truths dataset, data augmentation, labelling and converting to YOLO understandable format. If you already have a premade dataset please check the next sections.
+{% hint style="info" %}
+If you already have a premade dataset please check the next sections.
+{% endhint %}
+
+This page describes about generating ground truths dataset, data augmentation, labelling and converting to YOLO understandable format.&#x20;
 
 
 

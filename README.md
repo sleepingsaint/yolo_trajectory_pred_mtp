@@ -10,6 +10,6 @@ Main objectives of the project is to build a real time object collision detectio
 
 Implementing a multi view based object collision system using the predicted trajectories which used object detection module outputs as inputs.
 
-### Credits
+## Credits
 
 This project is part of my academic curriculum MTP (M. Tech Project), which I pursued under the guidance of Prof. P. K. Biswas, ECE Department, IIT KGP, and with the help of my reasearch engineer guide Vivek Raj.
