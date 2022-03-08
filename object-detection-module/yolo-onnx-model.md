@@ -4,6 +4,10 @@ To implement any kind of performance optimizations we need a format which is rea
 
 One such implementation is ONNX specification.
 
+{% hint style="info" %}
+If you want to read more about ONNX check [ONNX](../notes/onnx.md) section in notes section
+{% endhint %}
+
 Darknet doesn’t offer conversion modules to convert darknet trained models to ONNX format. I used an online library code which offers conversion scripts.&#x20;
 
 ## Downloading

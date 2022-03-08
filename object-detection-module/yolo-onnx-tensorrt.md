@@ -1,6 +1,14 @@
 # YOLO ONNX TensorRT
 
-This solution is to run the darknet trained model using TensorRT runtime
+This solution is to run the darknet trained model using TensorRT runtime.
+
+{% hint style="info" %}
+If you want to read more about TensorRT check [TensorRT](../notes/tensorrt.md) section in notes section.
+{% endhint %}
+
+{% hint style="info" %}
+If you want to read more about ONNX check [ONNX](../notes/onnx.md) section in notes section.
+{% endhint %}
 
 ## Downloading the code
 
