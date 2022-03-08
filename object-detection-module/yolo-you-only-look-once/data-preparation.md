@@ -42,3 +42,24 @@ After labelling the frames, we generated the multiple sets of dataset with diffe
   * Once you are done with preprocessing, now proceed to the augmentation steps. Select different augmentation options ( both image level and bounding boxes options ) like changing hue, saturation, blur, shear, rotation etc.
   * Once you applied your augmentation options, click on generate dataset at the bottom of the page. This will generate a new dataset with all the options you selected earlier.
 * After generating the dataset click on export and select **YOLO Darknet** option to export in the form suitable for yolo to train.
+
+## YOLO Data format
+
+The data should contain `.txt`-file for each `.jpg`-image-file - in the same directory and with the same name, but with `.txt`-extension, and put to file: object number and object coordinates on this image, for each object in new line:
+
+`<object-class> <x_center> <y_center> <width> <height>`
+
+Where:
+
+* `<object-class>` - integer object number from `0` to `(classes-1)`
+* `<x_center> <y_center> <width> <height>` - float values **relative** to width and height of image, it can be equal from `(0.0 to 1.0]`
+* for example: `<x> = <absolute_x> / <image_width>` or `<height> = <absolute_height> / <image_height>`
+*   attention: `<x_center> <y_center>` - are center of rectangle (are not top-left corner)
+
+    For example for `img1.jpg` you will be created `img1.txt` containing:
+
+    ```csv
+    1 0.716797 0.395833 0.216406 0.147222
+    0 0.687109 0.379167 0.255469 0.158333
+    1 0.420312 0.395833 0.140625 0.166667
+    ```
