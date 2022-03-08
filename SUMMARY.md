@@ -11,6 +11,7 @@
   * [Training Custom YOLOv4 Model](object-detection-module/yolo-you-only-look-once/training-custom-yolov4-model.md)
 * [YOLO ONNX Model](object-detection-module/yolo-onnx-model.md)
 * [YOLO ONNX TensorRT](object-detection-module/yolo-onnx-tensorrt.md)
+* [YOLO TensorRT](object-detection-module/yolo-tensorrt.md)
 
 ## Trajectory Prediction
 
