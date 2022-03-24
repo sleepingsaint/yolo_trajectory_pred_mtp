@@ -365,8 +365,8 @@ def runInference(model, video_path, output_path, num_frames, class_names, verbos
         print("clearing the output path")
         os.remove(output_path)
 
-    # input_fps = int(video.get(cv2.CAP_PROP_FPS))
-    input_fps = 8
+    input_fps = int(video.get(cv2.CAP_PROP_FPS))
+    # input_fps = 8
     result = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(
         *'MP4V'), input_fps, frame_size)
 
@@ -461,8 +461,8 @@ if __name__ == "__main__":
                         required=True, help="Path to the model file")
     parser.add_argument('-i', '--input', type=str,
                         required=True, help="Path to the video file")
-    parser.add_argument('-o', '--output', type=str,
-                        required=True, help="Path to the output video")
+    parser.add_argument('-o', '--output', type=str,default="output/new_pipeline_result.mp4", 
+                        required=False, help="Path to the output video")
     parser.add_argument('-f', '--frame_count', type=int,
                         help="Number of frames to run the video")
     parser.add_argument('-v', '--verbose', action='store_true',

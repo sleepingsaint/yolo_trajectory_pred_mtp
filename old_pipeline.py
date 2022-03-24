@@ -33,9 +33,9 @@ class VideoTracker(object):
         if not use_cuda:
             warnings.warn("Running in cpu mode which maybe very slow!", UserWarning)
 
-        if args.display:
-            cv2.namedWindow("test", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("test", args.display_width, args.display_height)
+        # if args.display:
+        #     cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+        #     cv2.resizeWindow("test", args.display_width, args.display_height)
 
         if args.cam != -1:
             print("Using webcam " + str(args.cam))
@@ -79,12 +79,12 @@ class VideoTracker(object):
             os.makedirs(self.args.save_path, exist_ok=True)
 
             # path of saved video and results
-            self.save_video_path = os.path.join(self.args.save_path, "results.mp4")
-            self.save_results_path = os.path.join(self.args.save_path, "results.txt")
+            self.save_video_path = os.path.join(self.args.save_path, "old_pipeline_result.mp4")
+            self.save_results_path = os.path.join(self.args.save_path, "old_pipeline_results.txt")
 
             # create video writer
             fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-            input_fps = 3
+            input_fps = self.vdo.get(cv2.CAP_PROP_FPS) 
             self.writer = cv2.VideoWriter(self.save_video_path, fourcc, input_fps, (self.im_width, self.im_height))
 
             # logging

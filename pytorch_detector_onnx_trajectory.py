@@ -14,12 +14,17 @@ from utils.io import write_results
 from Trajectory import individual_TF
 from Trajectory.transformer.batch import subsequent_mask
 from tool.utils import load_class_names
+import onnxruntime
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
 
+collision_detected = False
+window = [1391, 529, 1431, 604]
+def to_numpy(tensor):
+    return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
 class VideoTracker(object):
     def __init__(self, cfg , args , video_path):
@@ -33,29 +38,34 @@ class VideoTracker(object):
         if not use_cuda:
             warnings.warn("Running in cpu mode which maybe very slow!", UserWarning)
 
-        if args.display:
-            cv2.namedWindow("test", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("test", args.display_width, args.display_height)
+        # if args.display:
+        #     cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+        #     cv2.resizeWindow("test", args.display_width, args.display_height)
 
         if args.cam != -1:
             print("Using webcam " + str(args.cam))
             self.vdo = cv2.VideoCapture(args.cam)
         else:
             self.vdo = cv2.VideoCapture()
+
         self.detector = build_detector(cfg, use_cuda=use_cuda)
-        
-        self.traj_ped = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0,0], std=[0,0]).to(device)
-        self.traj_ped.load_state_dict(torch.load("data/traj_person.pth", map_location=torch.device('cpu')))
-        self.traj_ped.eval()
-        self.traj_endeffector = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0,0], std=[0,0]).to(device)
-        self.traj_endeffector.load_state_dict(torch.load(f'data/traj_endeffector.pth', map_location=torch.device('cpu')))
-        self.traj_endeffector.eval()
-        self.traj_arm = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0, 0], std=[0, 0]).to(device)
-        self.traj_arm.load_state_dict(torch.load(f'data/traj_problance.pth', map_location=torch.device('cpu')))
-        self.traj_arm.eval()
-        self.traj_probe = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0, 0], std=[0, 0]).to(device)
-        self.traj_probe.load_state_dict(torch.load(f'data/traj_probe.pth', map_location=torch.device('cpu')))
-        self.traj_probe.eval()
+        self.endeffector_session = onnxruntime.InferenceSession("onnx/endeffector.onnx", providers=["CUDAExecutionProvider", ])
+        self.problance_session = onnxruntime.InferenceSession("onnx/problance.onnx", providers=["CUDAExecutionProvider", ])
+        self.probe_session = onnxruntime.InferenceSession("onnx/probe.onnx", providers=["CUDAExecutionProvider", ])
+        self.person_session = onnxruntime.InferenceSession("onnx/person.onnx", providers=["CUDAExecutionProvider", ]) 
+
+        # self.traj_ped = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0,0], std=[0,0]).to(device)
+        # self.traj_ped.load_state_dict(torch.load("data/traj_person.pth", map_location=torch.device('cpu')))
+        # self.traj_ped.eval()
+        # self.traj_endeffector = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0,0], std=[0,0]).to(device)
+        # self.traj_endeffector.load_state_dict(torch.load(f'data/traj_endeffector.pth', map_location=torch.device('cpu')))
+        # self.traj_endeffector.eval()
+        # self.traj_arm = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0, 0], std=[0, 0]).to(device)
+        # self.traj_arm.load_state_dict(torch.load(f'data/traj_problance.pth', map_location=torch.device('cpu')))
+        # self.traj_arm.eval()
+        # self.traj_probe = individual_TF.IndividualTF(2, 3, 3, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1, mean=[0, 0], std=[0, 0]).to(device)
+        # self.traj_probe.load_state_dict(torch.load(f'data/traj_probe.pth', map_location=torch.device('cpu')))
+        # self.traj_probe.eval()
         self.class_names = self.detector.class_names
         self.Q = { }
         self.previous_prediction_fps = -1
@@ -79,12 +89,12 @@ class VideoTracker(object):
             os.makedirs(self.args.save_path, exist_ok=True)
 
             # path of saved video and results
-            self.save_video_path = os.path.join(self.args.save_path, "results.mp4")
-            self.save_results_path = os.path.join(self.args.save_path, "results.txt")
+            self.save_video_path = os.path.join(self.args.save_path, "pytorch_detector_onnx_trajectory_results.mp4")
+            self.save_results_path = os.path.join(self.args.save_path, "pytorch_detector_onnx_trajectory_results.txt")
 
             # create video writer
             fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-            input_fps = 3
+            input_fps = self.vdo.get(cv2.CAP_PROP_FPS) 
             self.writer = cv2.VideoWriter(self.save_video_path, fourcc, input_fps, (self.im_width, self.im_height))
 
             # logging
@@ -112,7 +122,6 @@ class VideoTracker(object):
         mean_ped = torch.tensor([0.0001, 0.0001])
         std_ped = torch.tensor([0.0001, 0.0001])
 
-        window = [1391, 529, 1431, 604]
 
         while self.vdo.grab() :
             idx_frame += 1
@@ -166,8 +175,7 @@ class VideoTracker(object):
                     Q_np = np.array(self.Q[i], dtype=np.float32)
                     Q_d = Q_np[:, 1:, 0:2] - Q_np[:, :-1, 0:2]
                     inp = torch.from_numpy(Q_d)
-                    #print(i)
-                    #print(inp)
+
                     pr = []
                     if i == 0:
                         inp = (inp.to(device) - mean_end_effector.to(device)) / std_end_effector.to(device)
@@ -180,17 +188,48 @@ class VideoTracker(object):
                     src_att = torch.ones((inp.shape[0], 1, inp.shape[1])).to(device)
                     start_of_seq = torch.Tensor([0, 0, 1]).unsqueeze(0).unsqueeze(1).repeat(inp.shape[0], 1, 1).to(
                         device)
-                    dec_inp = start_of_seq
+                    dec_inp = start_of_seq.to(device)
+
                     for itr in range(12):
                         trg_att = subsequent_mask(dec_inp.shape[1]).repeat(dec_inp.shape[0], 1, 1).to(device)
                         if i == 0:
-                            out = self.traj_endeffector(inp, dec_inp, src_att, trg_att)
+                            out = self.endeffector_session.run(
+                                None,
+                                {
+                                    "input": to_numpy(inp),
+                                    "tgt": to_numpy(dec_inp),
+                                    "src_mask": to_numpy(src_att),
+                                    "tgt_mask": to_numpy(trg_att),
+                                })
                         elif i == 1:
-                            out = self.traj_arm(inp, dec_inp, src_att, trg_att)
+                            out = self.problance_session.run(
+                                None,
+                                {
+                                    "input": to_numpy(inp),
+                                    "tgt": to_numpy(dec_inp),
+                                    "src_mask": to_numpy(src_att),
+                                    "tgt_mask": to_numpy(trg_att),
+                                })
                         elif i == 2:
-                            out = self.traj_probe(inp, dec_inp, src_att, trg_att)
+                            out = self.probe_session.run(
+                                None,
+                                {
+                                    "input": to_numpy(inp),
+                                    "tgt": to_numpy(dec_inp),
+                                    "src_mask": to_numpy(src_att),
+                                    "tgt_mask": to_numpy(trg_att),
+                                })
                         else:
-                            out = self.traj_ped(inp, dec_inp, src_att, trg_att)
+                            out = self.person_session.run(
+                                None,
+                                {
+                                    "input": to_numpy(inp),
+                                    "tgt": to_numpy(dec_inp),
+                                    "src_mask": to_numpy(src_att),
+                                    "tgt_mask": to_numpy(trg_att),
+                                })
+                        
+                        out = torch.from_numpy(out[0]).to(device)
                         dec_inp = torch.cat((dec_inp, out[:, -1:, :]), 1)
                     if i == 0:
                         preds_tr_b = (dec_inp[:, 1:, 0:2] * std_end_effector.to(device) + mean_end_effector.to(device)).detach().cpu().numpy().cumsum(1)+Q_np[:, -1:, 0:2]

@@ -84,7 +84,7 @@ class VideoTracker(object):
 
             # create video writer
             fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-            self.writer = cv2.VideoWriter(self.save_video_path, fourcc, 20, (self.im_width, self.im_height))
+            self.writer = cv2.VideoWriter(self.save_video_path, fourcc, 3, (self.im_width, self.im_height))
 
             # logging
             self.logger.info("Save results to {}".format(self.args.save_path))

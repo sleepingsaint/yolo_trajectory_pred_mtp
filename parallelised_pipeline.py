@@ -10,7 +10,7 @@ import torch
 from Trajectory import individual_TF
 from Trajectory.transformer.batch import subsequent_mask
 import argparse
-
+from concurrent.futures import ThreadPoolExecutor
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cuda")
 
@@ -36,6 +36,16 @@ probe_session = onnxruntime.InferenceSession(
     "onnx/probe.onnx", providers=["CUDAExecutionProvider", ])
 person_session = onnxruntime.InferenceSession(
     "onnx/person.onnx", providers=["CUDAExecutionProvider", ])
+
+# these values have been calculated from training data
+mean_end_effector = torch.tensor((-2.6612e-05, -7.8652e-05))
+std_end_effector = torch.tensor((0.0025, 0.0042))
+mean_problance = torch.tensor([-1.3265e-05, -6.5026e-06])
+std_problance = torch.tensor([0.0030, 0.0185])
+mean_probe = torch.tensor([-5.1165e-05, -7.1806e-05])
+std_probe = torch.tensor([0.0038, 0.0185])
+mean_ped = torch.tensor([0.0001, 0.0001])
+std_ped = torch.tensor([0.0001, 0.0001])
 
 # covert the output from model to bounding boxes
 
@@ -194,15 +204,126 @@ def detect(session, image_src, class_names, verbose):
 # loading the transformer model
 
 
+def getTrajectoryHelper(label, input_width, input_height):
+    predictions_count = 0
+    if label in detections_map and len(detections_map[label][0]) >= 8:
+        arr = np.array([detections_map[label][0][0:8]], dtype=np.float32)
+        delta = arr[:, 1:, 0:2] - arr[:, :-1, 0:2]
+
+        input_torch = torch.from_numpy(delta).to(device)
+        if label == "end_effector":
+            input_torch = (input_torch.to(
+                device) - mean_end_effector.to(device)) / std_end_effector.to(device)
+        elif label == "problance":
+            input_torch = (input_torch.to(
+                device) - mean_problance.to(device)) / std_problance.to(device)
+        elif label == "probe":
+            input_torch = (input_torch.to(device) -
+                            mean_probe.to(device)) / std_probe.to(device)
+        elif label == "person":
+            input_torch = (input_torch.to(device) -
+                            mean_ped.to(device)) / std_ped.to(device)
+        else:
+            return prediction_count
+
+        src_att = torch.ones(
+            (input_torch.shape[0], 1, input_torch.shape[1])).to(device)
+        start_of_seq = torch.Tensor([0, 0, 1]).unsqueeze(0).unsqueeze(
+            1).repeat(input_torch.shape[0], 1, 1).to(device)
+        dec_input = start_of_seq.to(device)
+
+        # start = time.time()
+        predictions = []
+        for _ in range(12):
+            trg_att = subsequent_mask(dec_input.shape[1]).repeat(
+                dec_input.shape[0], 1, 1).to(device)
+            if label == "end_effector":
+                out = endeffector_session.run(
+                    None,
+                    {
+                        "input": to_numpy(input_torch),
+                        "tgt": to_numpy(dec_input),
+                        "src_mask": to_numpy(src_att),
+                        "tgt_mask": to_numpy(trg_att),
+                    })
+            elif label == "problance":
+                out = problance_session.run(
+                    None,
+                    {
+                        "input": to_numpy(input_torch),
+                        "tgt": to_numpy(dec_input),
+                        "src_mask": to_numpy(src_att),
+                        "tgt_mask": to_numpy(trg_att),
+                    })
+            elif label == "probe":
+                out = probe_session.run(None,
+                    {
+                        "input": to_numpy(input_torch), 
+                        "tgt": to_numpy(dec_input), 
+                        "src_mask": to_numpy(src_att), 
+                        "tgt_mask": to_numpy(trg_att),
+                    })
+            else:
+                out = person_session.run(None,
+                    {
+                        "input": to_numpy(input_torch), 
+                        "tgt": to_numpy(dec_input), 
+                        "src_mask": to_numpy(src_att), 
+                        "tgt_mask": to_numpy(trg_att),
+                    })
+
+            out = torch.from_numpy(out[0]).to(device)
+            dec_input = torch.cat([dec_input, out[:, -1:, :]], 1)
+
+        # end = time.time()
+        # predictions_time += (end - start)
+        predictions_count += 1
+
+        if label == "end_effector":
+            preds = (dec_input[:, 1:, 0:2]*std_end_effector.to(device) + mean_end_effector.to(
+                device)).detach().cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
+        elif label == "problance":
+            preds = (dec_input[:, 1:, 0:2]*std_problance.to(device) + mean_problance.to(device)).detach(
+            ).cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
+        elif label == "probe":
+            preds = (dec_input[:, 1:, 0:2]*std_probe.to(device) + mean_probe.to(device)).detach(
+            ).cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
+        elif label == "person":
+            preds = (dec_input[:, 1:, 0:2]*std_ped.to(device) + mean_ped.to(device)).detach(
+            ).cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
+        else:
+            return prediction_count
+        predictions.append(preds)
+        predictions = np.concatenate(predictions, 0)
+        # print(predictions)
+        detections_map[label][0].pop(0)
+        predictions_map[label] = [[], []]
+
+        for j in range(11):
+            pp1 = (int(preds[0, j, 0] * input_width),
+                    int(preds[0, j, 1] * input_height))
+            pp2 = (int(preds[0, j + 1, 0] * input_width),
+                    int(preds[0, j + 1, 1] * input_height))
+            predictions_map[label][1].append([pp1, pp2])
+
+        for j in range(7):
+            op1 = (int(arr[0, j, 0] * input_width),
+                    int(arr[0, j, 1] * input_height))
+            op2 = (int(arr[0, j + 1, 0] * input_width),
+                    int(arr[0, j + 1, 1] * input_height))
+            predictions_map[label][0].append([op1, op2])
+        
+        if len(predictions) != 0 and label != "window":
+            for j in range(11, 0, -1):
+                pp = (int(predictions[0, j, 0] * input_width), int(predictions[0, j, 1] * input_height))
+                if pp[0] > window[0] and pp[1] > window[1] and pp[0] <window[2] and pp[1] < window[3]:
+                    collision_detected = True
+                    break 
+    
+    return predictions_count
+
 def getTrajectory(frame, input_width, input_height, bboxes, class_names):
-    mean_end_effector = torch.tensor((-2.6612e-05, -7.8652e-05))
-    std_end_effector = torch.tensor((0.0025, 0.0042))
-    mean_problance = torch.tensor([-1.3265e-05, -6.5026e-06])
-    std_problance = torch.tensor([0.0030, 0.0185])
-    mean_probe = torch.tensor([-5.1165e-05, -7.1806e-05])
-    std_probe = torch.tensor([0.0038, 0.0185])
-    mean_ped = torch.tensor([0.0001, 0.0001])
-    std_ped = torch.tensor([0.0001, 0.0001])
+    
 
     global collision_detected
     collision_detected = False
@@ -222,123 +343,20 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
         else:
             detections_map[class_names[c]] = [[[x, y]]]
 
-        predictions_count = 0
-        predictions_time = 0
+    predictions_count = 0
 
-    for label in detections_map:
-        if label in detections_map and len(detections_map[label][0]) >= 8:
-            arr = np.array([detections_map[label][0][0:8]], dtype=np.float32)
-            delta = arr[:, 1:, 0:2] - arr[:, :-1, 0:2]
+    start = time.time()
+    with ThreadPoolExecutor(5) as executor:
 
-            input_torch = torch.from_numpy(delta).to(device)
-            if label == "end_effector":
-                input_torch = (input_torch.to(
-                    device) - mean_end_effector.to(device)) / std_end_effector.to(device)
-            elif label == "problance":
-                input_torch = (input_torch.to(
-                    device) - mean_problance.to(device)) / std_problance.to(device)
-            elif label == "probe":
-                input_torch = (input_torch.to(device) -
-                               mean_probe.to(device)) / std_probe.to(device)
-            elif label == "person":
-                input_torch = (input_torch.to(device) -
-                               mean_ped.to(device)) / std_ped.to(device)
-            else:
-                continue
+        res_end_effector = executor.submit(getTrajectoryHelper, "end_effector", input_width, input_height)
+        res_problance = executor.submit(getTrajectoryHelper, "problance", input_width, input_height)
+        res_probe = executor.submit(getTrajectoryHelper, "probe", input_width, input_height)
+        res_person = executor.submit(getTrajectoryHelper, "person", input_width, input_height)
 
-            src_att = torch.ones(
-                (input_torch.shape[0], 1, input_torch.shape[1])).to(device)
-            start_of_seq = torch.Tensor([0, 0, 1]).unsqueeze(0).unsqueeze(
-                1).repeat(input_torch.shape[0], 1, 1).to(device)
-            dec_input = start_of_seq.to(device)
+        predictions_count += res_end_effector.result() + res_problance.result() + res_probe.result() + res_person.result()
+    end = time.time()
+    predictions_time = end - start 
 
-            start = time.time()
-            predictions = []
-            for _ in range(12):
-                trg_att = subsequent_mask(dec_input.shape[1]).repeat(
-                    dec_input.shape[0], 1, 1).to(device)
-                if label == "end_effector":
-                    out = endeffector_session.run(
-                        None,
-                        {
-                            "input": to_numpy(input_torch),
-                            "tgt": to_numpy(dec_input),
-                            "src_mask": to_numpy(src_att),
-                            "tgt_mask": to_numpy(trg_att),
-                        })
-                elif label == "problance":
-                    out = problance_session.run(
-                        None,
-                        {
-                            "input": to_numpy(input_torch),
-                            "tgt": to_numpy(dec_input),
-                            "src_mask": to_numpy(src_att),
-                            "tgt_mask": to_numpy(trg_att),
-                        })
-                elif label == "probe":
-                    out = probe_session.run(None,
-                        {
-                            "input": to_numpy(input_torch), 
-                            "tgt": to_numpy(dec_input), 
-                            "src_mask": to_numpy(src_att), 
-                            "tgt_mask": to_numpy(trg_att),
-                        })
-                else:
-                    out = person_session.run(None,
-                        {
-                            "input": to_numpy(input_torch), 
-                            "tgt": to_numpy(dec_input), 
-                            "src_mask": to_numpy(src_att), 
-                            "tgt_mask": to_numpy(trg_att),
-                        })
-
-                out = torch.from_numpy(out[0]).to(device)
-                dec_input = torch.cat([dec_input, out[:, -1:, :]], 1)
-
-            end = time.time()
-            predictions_time += (end - start)
-            predictions_count += 1
-
-            if label == "end_effector":
-                preds = (dec_input[:, 1:, 0:2]*std_end_effector.to(device) + mean_end_effector.to(
-                    device)).detach().cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
-            elif label == "problance":
-                preds = (dec_input[:, 1:, 0:2]*std_problance.to(device) + mean_problance.to(device)).detach(
-                ).cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
-            elif label == "probe":
-                preds = (dec_input[:, 1:, 0:2]*std_probe.to(device) + mean_probe.to(device)).detach(
-                ).cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
-            elif label == "person":
-                preds = (dec_input[:, 1:, 0:2]*std_ped.to(device) + mean_ped.to(device)).detach(
-                ).cpu().numpy().cumsum(1) + arr[:, -1, 0:2]
-            else:
-                continue
-            predictions.append(preds)
-            predictions = np.concatenate(predictions, 0)
-            # print(predictions)
-            detections_map[label][0].pop(0)
-            predictions_map[label] = [[], []]
-
-            for j in range(11):
-                pp1 = (int(preds[0, j, 0] * input_width),
-                       int(preds[0, j, 1] * input_height))
-                pp2 = (int(preds[0, j + 1, 0] * input_width),
-                       int(preds[0, j + 1, 1] * input_height))
-                predictions_map[label][1].append([pp1, pp2])
-
-            for j in range(7):
-                op1 = (int(arr[0, j, 0] * input_width),
-                       int(arr[0, j, 1] * input_height))
-                op2 = (int(arr[0, j + 1, 0] * input_width),
-                       int(arr[0, j + 1, 1] * input_height))
-                predictions_map[label][0].append([op1, op2])
-            
-            if len(predictions) != 0 and label != "window":
-                for j in range(11, 0, -1):
-                    pp = (int(predictions[0, j, 0] * input_width), int(predictions[0, j, 1] * input_height))
-                    if pp[0] > window[0] and pp[1] > window[1] and pp[0] <window[2] and pp[1] < window[3]:
-                        collision_detected = True
-                        break 
     if predictions_count > 0:
         return frame, predictions_time / predictions_count
 
@@ -365,8 +383,8 @@ def runInference(model, video_path, output_path, num_frames, class_names, verbos
         print("clearing the output path")
         os.remove(output_path)
 
-    # input_fps = int(video.get(cv2.CAP_PROP_FPS))
-    input_fps = 8
+    input_fps = int(video.get(cv2.CAP_PROP_FPS))
+    # input_fps = 8
     result = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(
         *'MP4V'), input_fps, frame_size)
 
@@ -461,8 +479,8 @@ if __name__ == "__main__":
                         required=True, help="Path to the model file")
     parser.add_argument('-i', '--input', type=str,
                         required=True, help="Path to the video file")
-    parser.add_argument('-o', '--output', type=str,
-                        required=True, help="Path to the output video")
+    parser.add_argument('-o', '--output', type=str,default="output/new_pipeline_result.mp4", 
+                        required=False, help="Path to the output video")
     parser.add_argument('-f', '--frame_count', type=int,
                         help="Number of frames to run the video")
     parser.add_argument('-v', '--verbose', action='store_true',
@@ -484,3 +502,4 @@ if __name__ == "__main__":
 
     runInference(args.model, args.input, args.output,
                  args.frame_count, class_names, args.verbose, args.frame_freq)
+

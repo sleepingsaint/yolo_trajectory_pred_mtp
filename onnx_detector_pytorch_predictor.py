@@ -15,6 +15,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = torch.device("cuda")
 
 detections_map = {}
+collision_detected = False
+window = [1391, 529, 1431, 604]
 
 """
 predictions_map format:
@@ -211,6 +213,9 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
     std_probe = torch.tensor([0.0038, 0.0185])
     mean_ped = torch.tensor([0.0001, 0.0001])
     std_ped = torch.tensor([0.0001, 0.0001])
+    
+    global collision_detected
+    collision_detected = False
 
     def getBoxCenters():
         centers = []
@@ -311,6 +316,13 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
                 op2 = (int(arr[0, j + 1, 0] * input_width),
                        int(arr[0, j + 1, 1] * input_height))
                 predictions_map[label][0].append([op1, op2])
+            
+            if len(predictions) != 0 and label != "window":
+                for j in range(11, 0, -1):
+                    pp = (int(predictions[0, j, 0] * input_width), int(predictions[0, j, 1] * input_height))
+                    if pp[0] > window[0] and pp[1] > window[1] and pp[0] <window[2] and pp[1] < window[3]:
+                        collision_detected = True
+                        break 
 
     if predictions_count > 0:
         return frame, predictions_time / predictions_count
@@ -318,7 +330,7 @@ def getTrajectory(frame, input_width, input_height, bboxes, class_names):
     return frame, 0 
 
 
-def runInference(model, video_path, output_path, num_frames, class_names, verbose):
+def runInference(model, video_path, output_path, num_frames, class_names, verbose, frame_freq):
 
     session = onnxruntime.InferenceSession(
         model, providers=["CUDAExecutionProvider", ])
@@ -338,14 +350,13 @@ def runInference(model, video_path, output_path, num_frames, class_names, verbos
         print("clearing the output path")
         os.remove(output_path)
 
-    # input_fps = int(video.get(cv2.CAP_PROP_FPS))
-    input_fps = 8
+    input_fps = int(video.get(cv2.CAP_PROP_FPS))
+    
     result = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(
         *'MP4V'), input_fps, frame_size)
 
     frame_count = 0
     total = {"inference": 0, "traj": 0, "obj": 0, "nms": 0, "bbox": 0}
-    frame_freq = 10
     traj_count = 0
     past_trajectory_fps = 0
     with Halo(spinner="dots", text="Loading the frames") as sp:
@@ -392,6 +403,11 @@ def runInference(model, video_path, output_path, num_frames, class_names, verbos
                 cv2.putText(detection, f"Input FPS: {input_fps} | Inference FPS: {inference_fps} | Trajectory FPS: {trajectory_fps} | Total Fps: {round(1 / (trajectory_time + inference_time), 2)}", (
                     50, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
 
+                global collision_detected
+                if collision_detected:
+                    detection = cv2.rectangle(detection, (1330, 456), (1490, 660),(0, 0, 255), 4)
+                    detection = cv2.putText(detection, 'Possible collision', (1160, 325), cv2.FONT_HERSHEY_SIMPLEX , 2, (0, 0, 255), 3, cv2.LINE_AA)
+
                 for label in predictions_map:
                     for op1, op2 in predictions_map[label][0]:
                         detection = cv2.line(
@@ -429,14 +445,15 @@ if __name__ == "__main__":
                         required=True, help="Path to the model file")
     parser.add_argument('-i', '--input', type=str,
                         required=True, help="Path to the video file")
-    parser.add_argument('-o', '--output', type=str,
-                        required=True, help="Path to the output video")
+    parser.add_argument('-o', '--output', type=str, default="output/onnx_detector_pytorch_predictor_result.mp4",
+                        help="Path to the output video")
     parser.add_argument('-f', '--frame_count', type=int,
                         help="Number of frames to run the video")
     parser.add_argument('-v', '--verbose', action='store_true',
                         default=False, help="Enable more details")
     parser.add_argument('-c', '--num_classes', type=int,
                         default=5, help="Number of classes model trained on")
+    parser.add_argument('-q', '--frame_freq', default=1, type=int, help="Freq on which to run the trajectory prediction")
     args = parser.parse_args()
     # print(args)
 
@@ -450,4 +467,4 @@ if __name__ == "__main__":
     class_names = load_class_names(namesfile)
 
     runInference(args.model, args.input, args.output,
-                 args.frame_count, class_names, args.verbose)
+                 args.frame_count, class_names, args.verbose, args.frame_freq)
