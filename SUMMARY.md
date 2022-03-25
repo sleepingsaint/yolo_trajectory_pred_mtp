@@ -21,6 +21,9 @@
 ## Pipeline
 
 * [Pipeline](pipeline/pipeline.md)
+* [ONNX Detector - PyTorch Trajectory](pipeline/onnx-detector-pytorch-trajectory.md)
+* [PyTorch Detector - ONNX Trajectory](pipeline/pytorch-detector-onnx-trajectory.md)
+* [Multi Threaded Pipeline](pipeline/multi-threaded-pipeline.md)
 
 ## Notes
 

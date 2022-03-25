@@ -13,7 +13,7 @@ docker pull nvcr.io/nvidia/tensorrt:21.07-py3
 Clone the repo using the following command
 
 ```
-git clone https://github.com/enazoe/yolo-tensorrt.git
+git clone https://github.com/sleepingsaint/yolo-tensorrt-cpp.git
 ```
 
 Start the container
